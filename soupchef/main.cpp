@@ -433,9 +433,10 @@ void exportCityJSON(DCEL& D, const char* file_out) {
     fl << std::endl;
     fl << "]" << std::endl;
     fl << "}" << std::endl;
-    fl << "]," << std::endl;
+    fl << "]" << std::endl;
 
     //close the cityobjects
+    fl << "}" << std::endl;
     fl << "}," << std::endl;
 
     //write the vertices using the index value from the vector created in the begin and close the json
@@ -447,7 +448,6 @@ void exportCityJSON(DCEL& D, const char* file_out) {
     fl.seekp(-3, std::ios_base::end);
     fl << std::endl;
     fl << "]" << std::endl;
-    fl << "}" << std::endl;
     fl << "}";
 
 }
@@ -462,7 +462,7 @@ int main(int argc, const char* argv[]) {
 
     // 1. read the triangle soup from the OBJ input file and convert it to the DCEL,
     importOBJ(D, file_in);
-    //printDCEL(D);
+    printDCEL(D);
 
     // 2. group the triangles into meshes,
 

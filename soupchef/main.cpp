@@ -1,12 +1,14 @@
 #include <iostream>
+#include <map>
+#include <algorithm>
 #include <fstream>
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <sstream>
 #include <assert.h>
+//#include <bits/stdc++.h>
 
-#include <iostream>
 #include <list>
 #include "DCEL.hpp"
 #include "Point.h"
@@ -350,30 +352,103 @@ void mergeCoPlanarFaces(DCEL& D) {
     // to do
 }
 // 5.
-void exportCityJSON(DCEL& D, const char* file_out) {
 
+
+void exportCityJSON(DCEL& D, const char* file_out) {
+        const auto& vertices = D.vertices();
+    const auto& halfEdges = D.halfEdges();
+    const auto& faces = D.faces();
+    std::unordered_map<int, Point> vertexID;
+    std::vector<Point> point_vertices_export;
     std::fstream fl;
     fl.open(file_out, std::fstream::in | std::fstream::out | std::fstream::trunc);
 
-    fl << "{" << std::endl;
-    fl << "\"type\": \"CityJSON\"" << std::endl;
-
-    const auto& vertices = D.vertices();
-    const auto& halfEdges = D.halfEdges();
-    const auto& faces = D.faces();
-    std::cout << "DCEL has:\n";
-    std::cout << " " << vertices.size() << " vertices:\n";
+    //set the vertex vector that will be used for indexing
+    int countv = 0;
     for (const auto& v : vertices) {
-        std::cout << "  * " << *v << "\n";
+        Point VtoPoint;
+        VtoPoint.x = float(v->x);
+        VtoPoint.y = float(v->y);
+        VtoPoint.z = float(v->z);
+        vertexID[countv] = VtoPoint;
+        countv++;
     }
-    std::cout << " " << halfEdges.size() << " half-edges:\n";
-    for (const auto& e : halfEdges) {
-        std::cout << "  * " << *e << "\n";
-    }
-    std::cout << " " << faces.size() << " faces:\n";
+
+    //write the general part
+    fl << "{" << std::endl;
+    fl << "\"type\": \"CityJSON\"," << std::endl;
+    fl << "\"version\": \"1.0\"," << std::endl;
+    fl << "\"CityObjects\": {" << std::endl;
+
+    //write the cityobjects parts
+    int idbuilding_count = 1;
+
+    fl << "\"id-" << idbuilding_count << "\": {" << std::endl;
+    fl << "\"type\": \"Building\", " << std::endl;
+    fl << "\"geometry\": [{" << std::endl;
+    fl << "\"type\": \"MultiSurface\"," << std::endl;
+    fl << "\"lod\": 2," << std::endl;
+    fl << "\"boundaries\": [" << std::endl;
+
+    //write the boundaries using the index value from the vector created in the begin 
     for (const auto& f : faces) {
-        std::cout << "  * " << *f << "\n";
+        fl << "[[";
+        Vertex* v0 = f->exteriorEdge->origin;
+        Point VtoPoint;
+        VtoPoint.x = float(v0->x);
+        VtoPoint.y = float(v0->y);
+        VtoPoint.z = float(v0->z);
+
+        for (int i = 0; i < vertexID.size(); i++) {
+            if (vertexID[i].x == VtoPoint.x && vertexID[i].y == VtoPoint.y && vertexID[i].z == VtoPoint.z) {
+                fl << i << ", ";
+            }
+        }
+
+        Vertex* v1 = f->exteriorEdge->destination;
+        VtoPoint.x = float(v1->x);
+        VtoPoint.y = float(v1->y);
+        VtoPoint.z = float(v1->z);
+
+        for (int i = 0; i < vertexID.size(); i++) {
+            if (vertexID[i].x == VtoPoint.x && vertexID[i].y == VtoPoint.y && vertexID[i].z == VtoPoint.z) {
+                fl << i << ", ";
+            }
+        }
+
+        Vertex* v2 = f->exteriorEdge->next->destination;
+        VtoPoint.x = float(v2->x);
+        VtoPoint.y = float(v2->y);
+        VtoPoint.z = float(v2->z);
+
+        for (int i = 0; i < vertexID.size(); i++) {
+            if (vertexID[i].x == VtoPoint.x && vertexID[i].y == VtoPoint.y && vertexID[i].z == VtoPoint.z) {
+                fl << i;
+            }
+        }
+        fl << "]], ";
     }
+
+    fl.seekp(-2, std::ios_base::end);
+    fl << std::endl;
+    fl << "]" << std::endl;
+    fl << "}" << std::endl;
+    fl << "]," << std::endl;
+
+    //close the cityobjects
+    fl << "}," << std::endl;
+
+    //write the vertices using the index value from the vector created in the begin and close the json
+    fl << "\"vertices\": [" << std::endl;
+
+    for (const auto& v : vertices) {
+        fl << "[" << float(v->x) << ", " << float(v->y) << ", " << float(v->z) << "]," << std::endl;
+    }
+    fl.seekp(-3, std::ios_base::end);
+    fl << std::endl;
+    fl << "]" << std::endl;
+    fl << "}" << std::endl;
+    fl << "}";
 
 }
 
@@ -387,7 +462,7 @@ int main(int argc, const char* argv[]) {
 
     // 1. read the triangle soup from the OBJ input file and convert it to the DCEL,
     importOBJ(D, file_in);
-    printDCEL(D);
+    //printDCEL(D);
 
     // 2. group the triangles into meshes,
 
@@ -398,6 +473,7 @@ int main(int argc, const char* argv[]) {
     // 4. merge adjacent triangles that are co-planar into larger polygonal faces.
 
     // 5. write the meshes with their faces to a valid CityJSON output file.
+    exportCityJSON(D, file_out);
 
     return 0;
 }

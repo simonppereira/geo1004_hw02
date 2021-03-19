@@ -290,7 +290,7 @@ void importOBJ(DCEL& D, const char* file_in) {
             emap[pair1] = e2;
 
             //std::cout << '\n' << "for face: " << i << ", e1: " << emap[pair2];
-            std::cout << '\n' << "for face: " << i << ", e1: " << e2;
+            std::cout << '\n' << "for face: " << i << ", e2: " << e2;
         }
         else {
             HalfEdge* e2 = emap[pair2];
@@ -325,7 +325,7 @@ void importOBJ(DCEL& D, const char* file_in) {
 
 
             //std::cout << '\n' << "for face: " << i << ", e1: " << emap[pair2];
-            std::cout << '\n' << "for face: " << i << ", e1: " << e2;
+            std::cout << '\n' << "for face: " << i << ", e2: " << e2;
         }
 
         f->exteriorEdge = emap[pair0];
@@ -340,9 +340,232 @@ void importOBJ(DCEL& D, const char* file_in) {
     }
 }
 // 2.
-void groupTriangles(DCEL& D) {
-    // to do
+void faceinfection(HalfEdge* a, Vertex* o, Vertex* d, int i, std::unordered_map<Face*, int> fmap) {
+    if (
+        a->origin == o &&
+        a->destination == d) {
+        fmap[a->incidentFace] = i + 1;
+    }
+    else if (
+        a->origin == d &&
+        a->destination == o) {
+        fmap[a->incidentFace] = i + 1;
+    }
+    else if (
+        a->next->origin == o &&
+        a->next->destination == d) {
+        fmap[a->incidentFace] = i + 1;
+    }
+    else if (
+        a->next->origin == d &&
+        a->next->destination == o) {
+        fmap[a->incidentFace] = i + 1;
+    }
+    else if (
+        a->prev->origin == o &&
+        a->prev->destination == d) {
+        fmap[a->incidentFace] = i + 1;
+    }
+    else if (
+        a->prev->origin == d &&
+        a->prev->destination == o) {
+        fmap[a->incidentFace] = i + 1;
+    }
 }
+
+void groupTriangles(DCEL& D) {
+    const auto& vertices = D.vertices();
+    const auto& halfEdges = D.halfEdges();
+    const auto& faces = D.faces();
+
+    std::unordered_map<Face*, int> fmap;
+    //std::unordered_map<Vertex*, Vertex*> nextfacemap;
+    //std::unordered_map<pair, Vertex*, pair_hash> nextfacemap;
+
+    for (const auto& f : faces) {
+
+        // add that if marked to not go iterate over that face
+
+        // initiate the marking counter that eventually makes sure that only the most recently marked faces are selected 
+        // in the rest of the iteration proces
+        int i = 1;
+
+        // mark the first face in the facelist 
+        fmap[f->exteriorEdge->incidentFace] = 0;
+
+        // starting with the first face in the facelist
+        // put the origin and destination of the first halfedge in a map
+        // in both directions to not exclude dangling halfedges as a result of an incorrect orientated face
+        Vertex* o1 = f->exteriorEdge->origin;
+        Vertex* d1 = f->exteriorEdge->destination;
+        //nextfacemap[o1] = d1;
+        //nextfacemap[d1] = o1;
+
+        Vertex* o2 = f->exteriorEdge->next->origin;
+        Vertex* d2 = f->exteriorEdge->next->destination;
+        //nextfacemap[o2] = d2;
+        //nextfacemap[d2] = o2;
+
+        Vertex* o3 = f->exteriorEdge->prev->origin;
+        Vertex* d3 = f->exteriorEdge->prev->destination;
+        //nextfacemap[o3] = d3;
+        //nextfacemap[d3] = o3;
+
+        // go to the next face that borders every halfedge
+        for (const auto& f : faces) {
+            HalfEdge* a = f->exteriorEdge;
+            if (fmap[f->exteriorEdge->incidentFace] == NULL) {
+                // try face neighbouring on side o1-d1
+                faceinfection(a, o1, d1, i, fmap);
+                // try face neighbouring on side o2-d2
+                faceinfection(a, o2, d2, i, fmap);
+                // try face neighbouring on side o3-d3
+                faceinfection(a, o3, d3, i, fmap);
+            }
+
+
+                
+                // try face neighbouring on side o1-d1
+                if (
+                    f->exteriorEdge->origin == o1 &&
+                    f->exteriorEdge->destination == d1 ) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->origin == d1 &&
+                    f->exteriorEdge->destination == o1 ) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->next->origin == o1 &&
+                    f->exteriorEdge->next->destination == d1 ) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->next->origin == d1 &&
+                    f->exteriorEdge->next->destination == o1 ) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->prev->origin == o1 &&
+                    f->exteriorEdge->prev->destination == d1) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->prev->origin == d1 &&
+                    f->exteriorEdge->prev->destination == o1) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+
+                // try face neighbouring on side o2-d2
+                else if (
+                    f->exteriorEdge->origin == o2 &&
+                    f->exteriorEdge->destination == d2) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->origin == d2 &&
+                    f->exteriorEdge->destination == o2) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->next->origin == o2 &&
+                    f->exteriorEdge->next->destination == d2) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->next->origin == d2 &&
+                    f->exteriorEdge->next->destination == o2) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->prev->origin == o2 &&
+                    f->exteriorEdge->prev->destination == d2) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->prev->origin == d2 &&
+                    f->exteriorEdge->prev->destination == o2) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+
+                // try face neighbouring on side o3-d3
+                else if (
+                    f->exteriorEdge->origin == o3 &&
+                    f->exteriorEdge->destination == d3) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->origin == d3 &&
+                    f->exteriorEdge->destination == o3) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->next->origin == o3 &&
+                    f->exteriorEdge->next->destination == d3) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->next->origin == d3 &&
+                    f->exteriorEdge->next->destination == o3) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->prev->origin == o3 &&
+                    f->exteriorEdge->prev->destination == d3) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                else if (
+                    f->exteriorEdge->prev->origin == d3 &&
+                    f->exteriorEdge->prev->destination == o3) {
+                    fmap[f->exteriorEdge->incidentFace] = i + 1;
+                }
+                
+        }
+
+
+
+
+            /*
+            the incident face of the memory location
+            of the twin = 
+
+            the incident face of the memory location
+            of e0 of the next face
+
+            //only if correctly orientated!
+
+            so the memory location of the incident face
+            is always the next face
+
+            //mark as checked_i
+            //
+            map[incidentface*] = checked
+        f->exteriorEdge->next->twin
+            //mark as checked_i
+        f->extoriorEdge->prev->twin
+            //mark as checked_i
+
+        //for every face marked as checked_i
+        f->exteriorEdge->twin
+            //if marked == NULL {
+            //mark as checked_i+1 }
+            //else {break}
+        f->exteriorEdge->next->twin
+            //if marked == NULL {
+            //mark as checked_i+! }
+            //else { break }
+        f->extoriorEdge->prev->twin
+            //if marked == NULL {
+            //mark as checked1_i+1 }
+            //else { break }
+
+            //i++
+                */
+    }
+
+}
+
 // 3.
 void orientMeshes(DCEL& D) {
     // to do
@@ -355,11 +578,10 @@ void mergeCoPlanarFaces(DCEL& D) {
 
 
 void exportCityJSON(DCEL& D, const char* file_out) {
-        const auto& vertices = D.vertices();
+    const auto& vertices = D.vertices();
     const auto& halfEdges = D.halfEdges();
     const auto& faces = D.faces();
     std::unordered_map<int, Point> vertexID;
-    std::vector<Point> point_vertices_export;
     std::fstream fl;
     fl.open(file_out, std::fstream::in | std::fstream::out | std::fstream::trunc);
 
@@ -450,11 +672,13 @@ void exportCityJSON(DCEL& D, const char* file_out) {
     fl << "]" << std::endl;
     fl << "}";
 
+
+
 }
 
 
 int main(int argc, const char* argv[]) {
-    const char* file_in = "C:/Users/s161887/OneDrive - TU Eindhoven/Master USRE CME/Vakken/3D Modelling of the Built Environment/hw2/hw02/cube.obj";
+    const char* file_in = "C:/Users/s161887/OneDrive - TU Eindhoven/Master USRE CME/Vakken/3D Modelling of the Built Environment/hw2/hw02/cube_soup.obj";
     const char* file_out = "bk.json";
 
     // create an empty DCEL

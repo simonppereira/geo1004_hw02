@@ -575,7 +575,7 @@ void orientMeshes(DCEL& D) {
     const auto &vertices = D.vertices();
     const auto &halfEdges = D.halfEdges();
     const auto &faces = D.faces();
-    std::unordered_map<float, Face> dist_face_point;
+    std::map<float, Face> dist_face_point;
 
     /*
         for (const auto &h : halfEdges) {
@@ -619,7 +619,7 @@ void orientMeshes(DCEL& D) {
         p2.x = vert2_x;
         p2.y = vert2_y;
         p2.z = vert2_z;
-
+        /*
         Vertex A = Vertex(vert1_x - vert0_x, vert1_y - vert0_y, vert1_z - vert0_z);
         Vertex B = Vertex(vert2_x - vert0_x, vert2_y - vert0_y, vert2_z - vert0_z);
 
@@ -639,16 +639,18 @@ void orientMeshes(DCEL& D) {
         norm.x = nor.x;
         norm.y = nor.y;
         norm.z = nor.z;
+         */
 
         Point orig_ray;
-        orig_ray.x = 0;
-        orig_ray.y = 0;
-        orig_ray.z = 0;
+        orig_ray.x = 6;
+        orig_ray.y = 8;
+        orig_ray.z = 3;
 
         // calculate centroid of triangle
-        Vertex centroid = Vertex((vert0_x + vert0_y + vert0_z)/3,
-                                 (vert1_x + vert1_y + vert1_z)/3,
-                                 (vert2_x + vert2_y + vert2_z)/3);
+        Point centroid;
+        centroid.x = (p0.x + p1.x + p2.x)/3;
+        centroid.y = (p0.y + p1.y + p2.y)/3;
+        centroid.z = (p0.z + p1.z + p2.z)/3;
 
         // map of [DISTANCE between centroid and ray's origin] = face
         dist_face_point[dist(centroid.x, centroid.y, centroid.z, orig_ray.x, orig_ray.y, orig_ray.z)] = *f;
@@ -688,11 +690,12 @@ void orientMeshes(DCEL& D) {
             point2.z = v2_z;
 
             float smallest_dist = dist_face_point.begin()->first;
-            float volume = ((point0 - orig_ray).dot((point1 - orig_ray).cross(point2 - orig_ray))) / 6;
+            std::cout<< "\n" << " Point 0,1,2,ray "<< point0 << " " << point1 << " " << point2 << " " << orig_ray;
+            float volume = ((point2 - orig_ray).dot((point1 - orig_ray).cross(point0 - orig_ray))) / 6;
 
             std::cout << "\n" << "VOLUME " << volume;
             std::cout << "\n" << "SMALLEST DISTANCE to centroid " << smallest_dist ;
-            std::cout << "\n" << "DISTANCE to vertex " << dist(p0.x, p0.y, p0.z, orig_ray.x, orig_ray.y, orig_ray.z);
+            std::cout << "\n" << "DISTANCE to vertex " << dist(point0.x, point0.y, point0.z, orig_ray.x, orig_ray.y, orig_ray.z);
 
             if(volume > 0){
                 //ACCESS h and navigate to twins
@@ -700,11 +703,9 @@ void orientMeshes(DCEL& D) {
             else{continue;}
 
         }
-        //std::cout << "\n" <<   "\n" << "VERT A    " << A << " Vert B  " << B << " mag: "<< mag_n << " n " << nor;
-        //std::cout << "\n" << "VERT Normal    " << norm;
-
     }
 }
+
 
 
 // 4.

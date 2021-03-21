@@ -494,13 +494,13 @@ void twinmethod(DCEL& D) {
 
 
 
-void createMeshes(DCEL& D){
+void createMeshes(DCEL& D,std::vector<std::list<Face*>>& meshes){
 
     const auto &faces = D.faces();
     std::stack<Face*> stack_f;
     std::list<Face*> mesh; // list to store all faces (store)
     std::list<Face*> marked_f; // list to check whether face has already been on the stack/used
-    std::vector<std::list<Face*>> meshes;
+
 
     for (const auto &f : faces){
         if (std::find(marked_f.begin(), marked_f.end(), f->exteriorEdge->incidentFace) != marked_f.end()){
@@ -544,164 +544,197 @@ void createMeshes(DCEL& D){
 
 
 // 3.
-float dist(float x, float y, float z, float a, float b, float c){
-    return sqrt(pow(x - a, 2) + pow(y - b, 2)+pow(z - c, 2));
-}
+void iteration(Face* f_start) {
+    std::stack<Face*> stack_f;
+    std::list<Face*> marked_f; // list to check whether face has already been on the stack/used
 
-void orientMeshes(DCEL& D) {
-    const auto &vertices = D.vertices();
-    const auto &halfEdges = D.halfEdges();
-    const auto &faces = D.faces();
-    std::map<float, Face> dist_face_point;
+    stack_f.push(f_start->exteriorEdge->incidentFace);
 
-    /*
-        for (const auto &h : halfEdges) {
+    while (!stack_f.empty()) {
+        Face* f_top = stack_f.top();
 
-        Vertex *vert0 = h->origin;
-        Vertex *vert1 = h->destination;
-        Vertex *vert2 = h->next->destination;
-     */
+        // for each face popped from stack, get its edges
+        std::vector<HalfEdge*> edges;
+        edges.emplace_back(f_top->exteriorEdge);
+        edges.emplace_back(f_top->exteriorEdge->prev);
+        edges.emplace_back(f_top->exteriorEdge->next);
 
-    int iterator = 0;
-    //for (const auto &f : faces) {
+        stack_f.pop();
 
-    for (const auto &e_toHole : D.infiniteFace()->holes){
-
-        Face *first_face = e_toHole->prev->incidentFace;
-
-        std::cout << "\n" << "edgehole  "  << e_toHole;
-
-        Vertex *vert0 = first_face->exteriorEdge->origin;
-        Vertex *vert1 = first_face->exteriorEdge->destination;
-        Vertex *vert2 = first_face->exteriorEdge->next->destination;
-
-        // A = vert1 - vert0 ; B = vert2 - vert0
-        double vert0_x = vert0->x;
-        double vert0_y = vert0->y;
-        double vert0_z = vert0->z;
-
-        double vert1_x = vert1->x;
-        double vert1_y = vert1->y;
-        double vert1_z = vert1->z;
-
-        double vert2_x = vert2->x;
-        double vert2_y = vert2->y;
-        double vert2_z = vert2->z;
-
-        Point p0;
-        p0.x = vert0_x;
-        p0.y = vert0_y;
-        p0.z = vert0_z;
-
-        Point p1;
-        p1.x = vert1_x;
-        p1.y = vert1_y;
-        p1.z = vert1_z;
-
-        Point p2;
-        p2.x = vert2_x;
-        p2.y = vert2_y;
-        p2.z = vert2_z;
-        /*
-        Vertex A = Vertex(vert1_x - vert0_x, vert1_y - vert0_y, vert1_z - vert0_z);
-        Vertex B = Vertex(vert2_x - vert0_x, vert2_y - vert0_y, vert2_z - vert0_z);
-
-        double nx = A.y * B.z - A.z * B.y;
-        double ny = A.z * B.x - A.x * B.z;
-        double nz = A.x * B.y - A.y * B.x;
-
-        Vertex nor = Vertex((nx), (ny), (nz));
-
-        // magnitude of n
-        double mag_n = sqrt((nx * nx) + (ny * ny) + (nz * nz));
-
-        // normalize
-        Vertex normal = Vertex((nx / mag_n), (ny / mag_n), (nz / mag_n));
-
-        Point norm;
-        norm.x = nor.x;
-        norm.y = nor.y;
-        norm.z = nor.z;
-         */
-
-        Point orig_ray;
-        orig_ray.x = -10;
-        orig_ray.y = -10;
-        orig_ray.z = -10;
-
-        // calculate centroid of triangle
-        Point centroid;
-        centroid.x = (p0.x + p1.x + p2.x)/3;
-        centroid.y = (p0.y + p1.y + p2.y)/3;
-        centroid.z = (p0.z + p1.z + p2.z)/3;
-
-        // map of [DISTANCE between centroid and ray's origin] = face
-        dist_face_point[dist(centroid.x, centroid.y, centroid.z, orig_ray.x, orig_ray.y, orig_ray.z)] = *first_face;
-
-        ++iterator;
-        if (iterator == faces.size()){
-            Vertex *v0 = dist_face_point.begin()->second.exteriorEdge->origin;
-            Vertex *v1 = dist_face_point.begin()->second.exteriorEdge->destination;
-            Vertex *v2 = dist_face_point.begin()->second.exteriorEdge->next->destination;
-
-            // A = vert1 - vert0 ; B = vert2 - vert0
-            double v0_x = v0->x;
-            double v0_y = v0->y;
-            double v0_z = v0->z;
-
-            double v1_x = v1->x;
-            double v1_y = v1->y;
-            double v1_z = v1->z;
-
-            double v2_x = v2->x;
-            double v2_y = v2->y;
-            double v2_z = v2->z;
-
-            Point point0;
-            point0.x = v0_x;
-            point0.y = v0_y;
-            point0.z = v0_z;
-
-            Point point1;
-            point1.x = v1_x;
-            point1.y = v1_y;
-            point1.z = v1_z;
-
-            Point point2;
-            point2.x = v2_x;
-            point2.y = v2_y;
-            point2.z = v2_z;
-
-            float smallest_dist = dist_face_point.begin()->first;
-            std::cout<< "\n" << " Point 0,1,2,ray "<< point0 << " " << point1 << " " << point2 << " " << orig_ray;
-            float volume = ((point2 - orig_ray).dot((point1 - orig_ray).cross(point0 - orig_ray))) / 6;
-
-            std::cout << "\n" << "VOLUME " << volume;
-            std::cout << "\n" << "SMALLEST DISTANCE to centroid " << smallest_dist ;
-            std::cout << "\n" << "DISTANCE to vertex " << dist(point0.x, point0.y, point0.z, orig_ray.x, orig_ray.y, orig_ray.z);
-
-            if(volume > 0){
-
+        // For each edge that was not visited before, push incident face on stack, in lists
+        for (const auto& e : edges) {
+            if (std::find(marked_f.begin(), marked_f.end(), e->twin->incidentFace) != marked_f.end()) {
+                continue;
             }
-            else{
-                Vertex *e_origin = dist_face_point.begin()->second.exteriorEdge->origin;
-                Vertex *e_dest = dist_face_point.begin()->second.exteriorEdge->destination;
+            else {
+                if (e->origin == e->twin->destination && e->destination == e->twin->origin) {
+                    stack_f.push(e->twin->incidentFace);
+                    marked_f.push_back(e->twin->incidentFace);
+                    std::cout << "\n" << "FACE IS CORRECT";
+                }
+                else {
+                    std::cout << "\n" << "FACE IS INCORRECT";
+                    Vertex* e_origin = e->twin->origin;
+                    Vertex* e_dest = e->twin->destination;
+                    std::swap(e_origin, e_dest);
 
-                std::cout << "\n" << " e_origin, e_dest " << e_origin << " " << e_dest;
-                std::swap(e_origin, e_dest);
-                std::cout << "\n" << " NEW e_origin, e_dest " << e_origin << " " << e_dest;
+                    Vertex* e1_origin = e->twin->prev->origin;
+                    Vertex* e1_dest = e->twin->prev->destination;
+                    std::swap(e1_origin, e1_dest);
 
-                Vertex *e1_origin = dist_face_point.begin()->second.exteriorEdge->prev->origin;
-                Vertex *e1_dest =dist_face_point.begin()->second.exteriorEdge->prev->destination;
-                std::swap(e1_origin, e1_dest);
+                    Vertex* e2_origin = e->twin->next->origin;
+                    Vertex* e2_dest = e->twin->next->destination;
+                    std::swap(e2_origin, e2_dest);
 
-                Vertex *e2_origin = dist_face_point.begin()->second.exteriorEdge->next->origin;
-                Vertex *e2_dest = dist_face_point.begin()->second.exteriorEdge->next->destination;
-                std::swap(e2_origin, e2_dest);
+                    stack_f.push(e->twin->incidentFace);
+                    marked_f.push_back(e->twin->incidentFace);
+                }
             }
         }
     }
 }
+
+float dist(float x, float y, float z, float a, float b, float c){
+    return sqrt(pow(x - a, 2) + pow(y - b, 2)+pow(z - c, 2));
+}
+
+void orientMeshes(DCEL& D, std::vector<std::list<Face*>> meshes) {
+    const auto &vertices = D.vertices();
+    const auto &halfEdges = D.halfEdges();
+    const auto &faces = D.faces();
+
+
+    for(const auto &mesh : meshes){
+        std::cout << "\n" << "mesh " << &mesh;
+        for (const auto &face : mesh){
+            std::cout << "\n" << "face " << face;
+        }
+    }
+
+    std::cout<< "\n" << "enter function";
+
+    for(const auto &mesh : meshes){
+        int iterator = 0;
+        std::cout<< "\n" << "first loop";
+        for (const auto &face : mesh){
+            std::map<float, Face> dist_face_point;
+            std::cout<< "\n" << "second loop";
+            Vertex *vert0 = face->exteriorEdge->origin;
+            Vertex *vert1 = face->exteriorEdge->destination;
+            Vertex *vert2 = face->exteriorEdge->next->destination;
+
+            // A = vert1 - vert0 ; B = vert2 - vert0
+            double vert0_x = vert0->x;
+            double vert0_y = vert0->y;
+            double vert0_z = vert0->z;
+
+            double vert1_x = vert1->x;
+            double vert1_y = vert1->y;
+            double vert1_z = vert1->z;
+
+            double vert2_x = vert2->x;
+            double vert2_y = vert2->y;
+            double vert2_z = vert2->z;
+
+            Point p0;
+            p0.x = vert0_x;
+            p0.y = vert0_y;
+            p0.z = vert0_z;
+
+            Point p1;
+            p1.x = vert1_x;
+            p1.y = vert1_y;
+            p1.z = vert1_z;
+
+            Point p2;
+            p2.x = vert2_x;
+            p2.y = vert2_y;
+            p2.z = vert2_z;
+
+            Point orig_ray;
+            orig_ray.x = -10;
+            orig_ray.y = -10;
+            orig_ray.z = -10;
+
+            // calculate centroid of triangle
+            Point centroid;
+            centroid.x = (p0.x + p1.x + p2.x)/3;
+            centroid.y = (p0.y + p1.y + p2.y)/3;
+            centroid.z = (p0.z + p1.z + p2.z)/3;
+
+            // map of [DISTANCE between centroid and ray's origin] = face
+            dist_face_point[dist(centroid.x, centroid.y, centroid.z, orig_ray.x, orig_ray.y, orig_ray.z)] = *face;
+
+            ++iterator;
+            if (iterator == mesh.size()) {
+                std::cout<< "\n" << "iterated through all faces of one mesh";
+                Vertex *v0 = dist_face_point.begin()->second.exteriorEdge->origin;
+                Vertex *v1 = dist_face_point.begin()->second.exteriorEdge->destination;
+                Vertex *v2 = dist_face_point.begin()->second.exteriorEdge->next->destination;
+
+                Face* f_start = dist_face_point.begin()->second.exteriorEdge->incidentFace;
+                // A = vert1 - vert0 ; B = vert2 - vert0
+                double v0_x = v0->x;
+                double v0_y = v0->y;
+                double v0_z = v0->z;
+
+                double v1_x = v1->x;
+                double v1_y = v1->y;
+                double v1_z = v1->z;
+
+                double v2_x = v2->x;
+                double v2_y = v2->y;
+                double v2_z = v2->z;
+
+                Point point0;
+                point0.x = v0_x;
+                point0.y = v0_y;
+                point0.z = v0_z;
+
+                Point point1;
+                point1.x = v1_x;
+                point1.y = v1_y;
+                point1.z = v1_z;
+
+                Point point2;
+                point2.x = v2_x;
+                point2.y = v2_y;
+                point2.z = v2_z;
+
+                // access the face with the smallest distance to ray's origin
+                float smallest_dist = dist_face_point.begin()->first;
+                std::cout << "\n" << " Point 0,1,2,ray " << point0 << " " << point1 << " " << point2 << " " << orig_ray;
+                float volume = ((point0 - orig_ray).dot((point1 - orig_ray).cross(point2 - orig_ray))) / 6;
+
+                std::cout << "\n" << "VOLUME " << volume;
+                std::cout << "\n" << "SMALLEST DISTANCE to centroid " << smallest_dist;
+                std::cout << "\n" << "DISTANCE to vertex " << dist(point0.x, point0.y, point0.z, orig_ray.x, orig_ray.y, orig_ray.z);
+
+                if (volume > 0) {
+                    std::cout<< "\n" << "volume > 0";
+                    iteration(f_start);
+                } else {
+                    Vertex *e_origin = dist_face_point.begin()->second.exteriorEdge->origin;
+                    Vertex *e_dest = dist_face_point.begin()->second.exteriorEdge->destination;
+
+                    std::cout << "\n" << " e_origin, e_dest " << e_origin << " " << e_dest;
+                    std::swap(e_origin, e_dest);
+                    std::cout << "\n" << " NEW e_origin, e_dest " << e_origin << " " << e_dest;
+
+                    Vertex *e1_origin = dist_face_point.begin()->second.exteriorEdge->prev->origin;
+                    Vertex *e1_dest = dist_face_point.begin()->second.exteriorEdge->prev->destination;
+                    std::swap(e1_origin, e1_dest);
+
+                    Vertex *e2_origin = dist_face_point.begin()->second.exteriorEdge->next->origin;
+                    Vertex *e2_dest = dist_face_point.begin()->second.exteriorEdge->next->destination;
+                    std::swap(e2_origin, e2_dest);
+                    iteration(f_start);
+                }
+            }
+        }
+    }
+}
+
 
 
 // 4.
@@ -810,8 +843,8 @@ void exportCityJSON(DCEL& D, const char* file_out) {
 
 
 int main(int argc, const char* argv[]) {
-    const char* file_in = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\cube_soup.obj";
-    const char* file_out = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\soupchef\\cube_tstray.json";
+    const char* file_in = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\isolated_cubes.obj";
+    const char* file_out = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\soupchef\\iso_cube.json";
 
     // create an empty DCEL
     DCEL D;
@@ -821,11 +854,14 @@ int main(int argc, const char* argv[]) {
     printDCEL(D);
 
     // 2. group the triangles into meshes,
-    createMeshes(D);
+    std::vector<std::list<Face*>> meshes;
+    createMeshes(D, meshes);
     // 3. determine the correct orientation for each mesh and ensure all its triangles 
     //    are consistent with this correct orientation (ie. all the triangle normals 
     //    are pointing outwards).
-    orientMeshes(D);
+
+
+    orientMeshes(D, meshes);
 
     // 4. merge adjacent triangles that are co-planar into larger polygonal faces.
 

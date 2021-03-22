@@ -1,3 +1,6 @@
+//Simon Pena Pereira  [5391210]
+//Joppe van Veghel [5199115]
+
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -8,7 +11,6 @@
 #include <sstream>
 #include <assert.h>
 #include <stack>
-
 #include <list>
 #include "DCEL.hpp"
 #include "Point.h"
@@ -375,7 +377,6 @@ void createMeshes(DCEL& D,std::vector<std::list<Face*>>& meshes){
         }// when stack is empty
         meshes.push_back(mesh);
         mesh.clear();
-        D.infiniteFace()->holes.push_back(f->exteriorEdge);
     }
 }
 
@@ -406,30 +407,19 @@ void iteration(Face* f_start) {
                 if (e->origin == e->twin->destination && e->destination == e->twin->origin) {
                     stack_f.push(e->twin->incidentFace);
                     marked_f.push_back(e->twin->incidentFace);
-                    std::cout << "\n" << "FACE IS CORRECT";
                 }
                 else if (e->origin == e->twin->origin && e->destination == e->twin->destination){
-                    std::cout << "\n" << "FACE IS INCORRECT";
                     Vertex* e_origin = e->twin->origin;
                     Vertex* e_dest = e->twin->destination;
                     std::swap(e_origin, e_dest);
-
-                    std::cout << "\n" << "origin0 twin , origin " << e_origin << " " << e->origin;
-                    std::cout << "\n" << "dest0 twin , dest " << e_dest << " " << e->destination << "\n";
 
                     Vertex* e1_origin = e->twin->prev->origin;
                     Vertex* e1_dest = e->twin->prev->destination;
                     std::swap(e1_origin, e1_dest);
 
-                    std::cout << "\n" << "origin1 twin, origin " << e1_origin << " " << e->origin;
-                    std::cout << "\n" << "dest1 twin, dest " << e1_dest << " " << e->destination << "\n";
-
                     Vertex* e2_origin = e->twin->next->origin;
                     Vertex* e2_dest = e->twin->next->destination;
                     std::swap(e2_origin, e2_dest);
-
-                    std::cout << "\n" << "origin2 twin , origin  " << e2_origin << " " << e->origin;
-                    std::cout << "\n" << "dest2 twin , origin " << e2_dest << " " << e->destination << "\n";
 
                     stack_f.push(e->twin->incidentFace);
                     marked_f.push_back(e->twin->incidentFace);
@@ -539,10 +529,8 @@ void orientMeshes(DCEL& D, std::vector<std::list<Face*>> meshes) {
 
                 // access the face with the smallest distance to ray's origin
                 float volume = ((point0 - orig_ray).dot((point1 - orig_ray).cross(point2 - orig_ray))) / 6;
-                std::cout << "\n" << "VOLUME " << volume;
 
                 if (volume > 0) {
-                    std::cout<< "\n" << "volume > 0";
                     iteration(f_start);
                 } else {
 
@@ -676,7 +664,7 @@ void exportCityJSON(DCEL& D, const char* file_out, std::vector<std::list<Face*>>
 }
 
 int main(int argc, const char* argv[]) {
-    const char* file_in = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\cube.obj";
+    const char* file_in = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\cube_soup.obj";
     const char* file_out = "C:\\Users\\simon\\Desktop\\Stuff\\1. TU Delft\\2. Semester\\3. GEO1004 3D Modelling of the Built Environment\\2. Assignment\\hw2\\soupchef\\cube.json";
 
     // create an empty DCEL
